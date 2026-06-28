@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anas Atroune — Géomaticien</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #C9A84C;
+      --gold-light: #E8D5A3;
+      --gold-dim: #7A5E2A;
+      --ink: #141210;
+      --ink-mid: #1C1A16;
+      --parchment-dark: #D4C9A8;
+      --rust: #8B3A2A;
+      --fog: #6B6456;
+      --map-green: #4A5C3A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--ink);
+      color: var(--gold-light);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* MAP GRID OVERLAY */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      opacity: 0.045;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 59px, #C9A84C 59px, #C9A84C 60px),
+        repeating-linear-gradient(90deg, transparent, transparent 59px, #C9A84C 59px, #C9A84C 60px);
+      z-index: 0;
+    }
+
+    /* CONTOUR LINES */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      opacity: 0.03;
+      z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='500'%3E%3Cellipse cx='400' cy='250' rx='380' ry='230' fill='none' stroke='%23C9A84C' stroke-width='1'/%3E%3Cellipse cx='400' cy='250' rx='300' ry='180' fill='none' stroke='%23C9A84C' stroke-width='1'/%3E%3Cellipse cx='400' cy='250' rx='220' ry='130' fill='none' stroke='%23C9A84C' stroke-width='1'/%3E%3Cellipse cx='400' cy='250' rx='140' ry='80' fill='none' stroke='%23C9A84C' stroke-width='1'/%3E%3Cellipse cx='400' cy='250' rx='60' ry='30' fill='none' stroke='%23C9A84C' stroke-width='1'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 3rem;
+      background: rgba(20,18,16,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 0.5px solid var(--gold-dim);
+    }
+
+    .nav-logo {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+    }
+
+    .nav-links { display: flex; gap: 2rem; }
+
+    .nav-links a {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--fog);
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--gold); }
+
+    /* PROJECT GALLERY */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1px;
+      background: rgba(201,168,76,0.12);
+    }
+
+    .gallery-card {
+      position: relative;
+      background: var(--ink-mid);
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      display: block;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .gallery-card:hover .gallery-overlay { opacity: 1; }
+    .gallery-card:hover .gallery-thumb { transform: scale(1.04); filter: brightness(0.45); }
+
+    .gallery-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease, filter 0.4s ease;
+      filter: brightness(0.6) sepia(0.3);
+    }
+
+    /* Placeholder quand pas d'image */
+    .gallery-thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ink-mid);
+      border: 0.5px dashed var(--gold-dim);
+      transition: filter 0.4s ease;
+    }
+
+    .gallery-card:hover .gallery-thumb-placeholder { filter: brightness(0.5); }
+
+    .placeholder-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      opacity: 0.35;
+    }
+
+    .placeholder-inner i { font-size: 32px; color: var(--gold); }
+
+    .placeholder-inner span {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+    }
+
+    /* Overlay au survol */
+    .gallery-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      background: linear-gradient(to top, rgba(20,18,16,0.92) 0%, transparent 60%);
+    }
+
+    /* Badge type toujours visible */
+    .gallery-badge {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      font-size: 8px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 0.5px solid var(--gold-dim);
+      padding: 0.2rem 0.5rem;
+      background: rgba(20,18,16,0.75);
+      backdrop-filter: blur(4px);
+    }
+
+    .gallery-title {
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin-bottom: 0.4rem;
+      line-height: 1.3;
+    }
+
+    .gallery-desc {
+      font-size: 11px;
+      color: var(--fog);
+      line-height: 1.65;
+      margin-bottom: 0.75rem;
+    }
+
+    .gallery-open {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .gallery-card--featured .gallery-title { font-size: 20px; }
+    .gallery-card--featured .gallery-desc { font-size: 13px; max-width: 520px; }
+
+    @media (max-width: 768px) {
+      .gallery-card--featured { grid-column: span 1 !important; }
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 3rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 4rem;
+      align-items: start;
+      border-bottom: 0.5px solid rgba(201,168,76,0.15);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero-label {
+      font-size: 9px;
+      letter-spacing: 0.42em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .hero-label::before {
+      content: '';
+      display: block;
+      width: 22px;
+      height: 0.5px;
+      background: var(--gold-dim);
+    }
+
+    .hero-name {
+      font-family: 'Cinzel', serif;
+      font-size: 52px;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-subtitle {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: 17px;
+      color: var(--parchment-dark);
+      margin-bottom: 1.75rem;
+      line-height: 1.5;
+    }
+
+    .hero-desc {
+      font-size: 14px;
+      line-height: 1.9;
+      color: var(--fog);
+      margin-bottom: 2rem;
+    }
+
+    .hero-contacts {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-bottom: 2rem;
+    }
+
+    .hero-contact-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 12px;
+      color: var(--fog);
+    }
+
+    .hero-contact-item i { color: var(--gold-dim); font-size: 15px; }
+
+    .hero-contact-item a {
+      color: var(--fog);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .hero-contact-item a:hover { color: var(--gold); }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      background: transparent;
+      border: 0.5px solid var(--gold);
+      color: var(--gold);
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .hero-cta:hover { background: rgba(201,168,76,0.1); }
+
+    /* SIDEBAR CARDS */
+    .map-card {
+      border: 0.5px solid var(--gold-dim);
+      padding: 1.25rem;
+      margin-bottom: 1px;
+    }
+
+    .map-card-title {
+      font-size: 8px;
+      letter-spacing: 0.38em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.65rem;
+      font-size: 11px;
+      color: var(--fog);
+    }
+
+    .legend-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .coord-display {
+      margin-top: 1.25rem;
+      padding-top: 0.75rem;
+      border-top: 0.5px solid rgba(201,168,76,0.12);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--gold-dim);
+      font-family: monospace;
+    }
+
+    .lang-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--fog);
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 0.5px solid rgba(201,168,76,0.08);
+    }
+
+    .lang-item:last-child { border-bottom: none; margin-bottom: 0; }
+    .lang-level { color: var(--gold-dim); font-size: 10px; }
+
+    /* SECTION SHARED */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 4rem 3rem;
+      border-bottom: 0.5px solid rgba(201,168,76,0.1);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.75rem;
+    }
+
+    .section-eyebrow span {
+      font-size: 9px;
+      letter-spacing: 0.42em;
+      color: var(--gold);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .section-eyebrow::after {
+      content: '';
+      flex: 1;
+      height: 0.5px;
+      background: rgba(201,168,76,0.18);
+    }
+
+    /* PROJECTS */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: rgba(201,168,76,0.12);
+    }
+
+    .project-card {
+      background: var(--ink);
+      padding: 1.75rem;
+      transition: background 0.2s;
+    }
+
+    .project-card:hover { background: rgba(201,168,76,0.05); }
+
+    .project-type {
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .project-title {
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin-bottom: 0.5rem;
+      line-height: 1.35;
+    }
+
+    .project-period {
+      font-size: 10px;
+      color: var(--rust);
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+
+    .project-desc {
+      font-size: 12px;
+      color: var(--fog);
+      line-height: 1.8;
+      margin-bottom: 1.25rem;
+    }
+
+    .project-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+    .tag {
+      font-size: 8px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      border: 0.5px solid var(--gold-dim);
+      padding: 0.2rem 0.45rem;
+    }
+
+    /* CV */
+    .cv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+
+    .cv-block-title {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 0.5px solid var(--gold-dim);
+    }
+
+    .cv-item { margin-bottom: 1.5rem; }
+
+    .cv-year {
+      font-size: 9px;
+      color: var(--gold-dim);
+      letter-spacing: 0.12em;
+      margin-bottom: 0.3rem;
+    }
+
+    .cv-role {
+      font-size: 13px;
+      color: var(--parchment-dark);
+      margin-bottom: 0.25rem;
+    }
+
+    .cv-place { font-size: 11px; color: var(--fog); font-style: italic; }
+
+    /* SKILLS */
+    .skills-section { margin-top: 3rem; }
+
+    .skills-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.75rem; }
+
+    .skill-pill {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      border: 0.5px solid rgba(201,168,76,0.28);
+      padding: 0.3rem 0.65rem;
+    }
+
+    /* CONTACT */
+    #contact {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 3rem;
+      text-align: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .compass-rose { margin-bottom: 2.5rem; opacity: 0.35; }
+
+    #contact h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 30px;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+
+    #contact p {
+      font-size: 14px;
+      color: var(--fog);
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .contact-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--gold-light);
+      text-decoration: none;
+      text-transform: uppercase;
+      border: 0.5px solid var(--gold-dim);
+      padding: 0.75rem 1.4rem;
+      transition: all 0.2s;
+    }
+
+    .contact-link:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--gold-dim);
+      border-top: 0.5px solid rgba(201,168,76,0.1);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 1.25rem; }
+      .hero { grid-template-columns: 1fr; padding: 3rem 1.5rem; gap: 2rem; }
+      .hero-name { font-size: 38px; }
+      section { padding: 3rem 1.5rem; }
+      .projects-grid { grid-template-columns: 1fr; }
+      .cv-grid { grid-template-columns: 1fr; gap: 2rem; }
+      #contact { padding: 3.5rem 1.5rem; }
+      footer { padding: 1.25rem 1.5rem; flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-logo">Anas Atroune — Géomaticien</div>
+    <div class="nav-links">
+      <a href="#projets">Projets</a>
+      <a href="#experiences">Expériences</a>
+      <a href="#parcours">Parcours</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <div class="hero-label">Master GAEUR — CY Paris Université</div>
+      <div class="hero-name">Anas<br>Atroune</div>
+      <div class="hero-subtitle">Géomatique · Analyse spatiale · Territoires logistiques</div>
+      <p class="hero-desc">
+        Étudiant en Master Géomatique appliquée aux études urbaines et aux risques, je travaille à l'intersection de l'analyse spatiale, du traitement de données et de la décision publique. Mon stage au projet WAREBURBIA (Sorbonne) et ma mission à la CACP ont forgé une expertise sur les banlieues logistiques et les mobilités urbaines.
+      </p>
+      <div class="hero-contacts">
+        <div class="hero-contact-item">
+          <i class="ti ti-mail" aria-hidden="true"></i>
+          <a href="mailto:atrounenanas@gmail.com">atrounenanas@gmail.com</a>
+        </div>
+        <div class="hero-contact-item">
+          <i class="ti ti-phone" aria-hidden="true"></i>
+          <span>+33 7 80 06 82 68</span>
+        </div>
+        <div class="hero-contact-item">
+          <i class="ti ti-map-pin" aria-hidden="true"></i>
+          <span>Cergy, Île-de-France</span>
+        </div>
+      </div>
+      <a href="#projets" class="hero-cta">
+        <i class="ti ti-map-2" aria-hidden="true"></i>
+        Explorer les projets
+      </a>
+    </div>
+
+    <div>
+      <div class="map-card">
+        <div class="map-card-title">Territoires étudiés</div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#C9A84C;"></div>
+          Communauté d'agglomération de Cergy Pontoise (CACP)
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#4A5C3A;"></div>
+          Région Île-de-France
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#8B3A2A;"></div>
+          France
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#6B6456;"></div>
+          Banlieues logistiques états-unienne
+        </div>
+        <div class="coord-display">
+          48°51′N / 2°03′E<br>
+          Master GAEUR · 2025–2027
+        </div>
+      </div>
+
+      <div class="map-card">
+        <div class="map-card-title">Langues</div>
+        <div class="lang-item"><span>Kabyle</span><span class="lang-level">Langue maternelle</span></div>
+        <div class="lang-item"><span>Arabe</span><span class="lang-level">C2</span></div>
+        <div class="lang-item"><span>Anglais</span><span class="lang-level">C1</span></div>
+        <div class="lang-item"><span>Français</span><span class="lang-level">Courant</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJETS (cartes & story maps) -->
+  <section id="projets">
+    <div class="section-eyebrow"><span>Projets cartographiques</span></div>
+    <div class="gallery-grid">
+
+      <!-- MIS EN VALEUR — Story Map déchets océaniques -->
+      <a class="gallery-card gallery-card--featured" href="https://storymaps.arcgis.com/stories/68466ce57b88464ca252067ab276c34b" target="_blank" rel="noopener" style="grid-column: span 2;">
+        <img class="gallery-thumb" src="storymapodyssee.jpg" alt="L'Odyssée Invisible — déchets océaniques">
+        <div class="gallery-badge" style="border-color:var(--gold); color:var(--gold);">★ Story Map · À la une</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title" style="font-size:18px;">L'Odyssée Invisible : Sur la Route des Déchets Océaniques</div>
+          <p class="gallery-desc">Récit cartographique immersif explorant les trajectoires des déchets plastiques à travers les courants océaniques mondiaux. ArcGIS StoryMaps.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir la story map</span>
+        </div>
+      </a>
+
+      <!-- STORY MAP 1 — Marche ville nouvelle -->
+      <a class="gallery-card" href="https://storymaps.arcgis.com/stories/f0e927e43f0a4e84bec329861cedacbf" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="storymarche.jpg" alt="Évolution de la pratique de la marche">
+        <div class="gallery-badge">Story Map · CACP</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Évolution de la pratique de la marche depuis la création de la ville nouvelle</div>
+          <p class="gallery-desc">Diagnostic territorial commandé par la CACP. Mobilités piétonnes à Cergy-Pontoise depuis la ville nouvelle. ArcGIS StoryMaps.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir la story map</span>
+        </div>
+      </a>
+
+ <!-- EXPERIENCE ARCGIS — PLU Dunkerque -->
+      <a class="gallery-card" href="https://experience.arcgis.com/experience/4731f0679d7d419db9e660f05a8f78c1" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="xpbuild.jpg" alt="PLU Dunkerque — risques Seveso">
+        <div class="gallery-badge">Experience · Risques industriels</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Entre port, industrie et ville — Le PLU de Dunkerque face aux risques Seveso</div>
+          <p class="gallery-desc">Application cartographique interactive analysant les conflits d'usage entre zones industrielles Seveso, PLU et espaces urbains à Dunkerque. ArcGIS Experience Builder.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir l'application</span>
+        </div>
+      </a>
+
+<!-- DASHBOARD — Bornes électriques CACP -->
+      <a class="gallery-card" href="https://www.arcgis.com/apps/dashboards/d5cf4d9f5c2c4687aaf279414926c5aa" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="dashbaord.jpg" alt="Dashboard bornes électriques CACP">
+        <div class="gallery-badge">Dashboard · ArcGIS</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Implantation des bornes électriques sur la CACP</div>
+          <p class="gallery-desc">Tableau de bord interactif de la répartition des bornes de recharge sur le territoire de la Communauté d'Agglomération Cergy-Pontoise. ArcGIS Dashboards.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir le dashboard</span>
+        </div>
+      </a>
+
+      <!-- CARTE — Justice environnementale / espaces verts -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="cartee1.png" alt="Accès aux espaces verts en moins de 300m — Cergy">
+        <div class="gallery-badge">Carte · Justice environnementale</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Accès aux espaces verts en moins de 300m — Cergy</div>
+          <p class="gallery-desc">Croisement NVMi (INSEE) et espaces verts (OSM). Analyse de la justice environnementale à l'échelle communale. QGIS · M1 GAEUR.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir la carte</span>
+        </div>
+      </a>
+
+      <!-- CARTE — Risques de crue -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="cartee2.png" alt="Périmètre des risques de crue et inondation — Cergy">
+        <div class="gallery-badge">Carte · Risques naturels</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Périmètre des risques de crue et inondation — Cergy</div>
+          <p class="gallery-desc">Cartographie des zones susceptibles d'être atteintes par les crues de l'Oise par quartiers. QGIS.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir la carte</span>
+        </div>
+      </a>
+
+      <!-- CARTE — Chicago entrepôts -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="image2.png" alt="Évolution du nombre d'entrepôts — Chicago">
+        <div class="gallery-badge">Carte · WAREBURBIA</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Évolution du nombre d'entrepôts — aire urbaine de Chicago</div>
+          <p class="gallery-desc">Cartographie par ZCTA de l'évolution des établissements logistiques entre 2019 et 2023. R · QGIS · Laboratoire Médiations.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir la carte</span>
+        </div>
+      </a>
+
+      <!-- CARTE — Los Angeles entrepôts -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="image3.png" alt="Évolution du nombre d'entrepôts — Los Angeles">
+        <div class="gallery-badge">Carte · WAREBURBIA</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Évolution du nombre d'entrepôts — aire urbaine de Los Angeles</div>
+          <p class="gallery-desc">Grille de densité logistique par ZCTA en Californie du Sud. Évolution 2019–2023. R · QGIS · Laboratoire Médiations.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir la carte</span>
+        </div>
+      </a>
+
+      <!-- POSTER — Biais cartographiques -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="eval.png" alt="Cartes instrumentalisées et biais idéologiques">
+        <div class="gallery-badge">Poster · Sémiologie</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Comment les cartes peuvent-elles être instrumentalisées par leurs concepteurs ?</div>
+          <p class="gallery-desc">Analyse critique de la manipulation cartographique à travers les élections européennes de 2024. Étude comparative de représentations biaisées. QGIS.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir le poster</span>
+        </div>
+      </a>
+
+      <!-- CARTE — Le Phénix -->
+      <a class="gallery-card" href="#" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="final.png" alt="Le Phénix — réhabilitation multiscalaire">
+        <div class="gallery-badge">Carte · Aménagement urbain</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Le Phénix : Un projet de réhabilitation à impact multiscalaire</div>
+          <p class="gallery-desc">Analyse multiscalaire d'un projet de réhabilitation sur la dalle de Cergy — Grand Centre. Cartographie des usages et fonctions urbaines. QGIS.</p>
+          <span class="gallery-open"><i class="ti ti-zoom-in" aria-hidden="true"></i> Voir la carte</span>
+        </div>
+      </a>
+
+      <!-- STORY MAP 2 — Incendies Kabylie -->
+      <a class="gallery-card" href="https://storymaps.arcgis.com/stories/84e63015de43490fba56717d13f0ddc3" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="storymapincendie.jpg" alt="Incendie Algérie — Kabylie">
+        <div class="gallery-badge">Story Map · Risques</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Incendie Algérie — Le cas de la Kabylie</div>
+          <p class="gallery-desc">Récit cartographique des incendies de forêt en Kabylie. Analyse spatiale des zones touchées et des dynamiques de propagation. ArcGIS StoryMaps.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir la story map</span>
+        </div>
+      </a>
+
+      <!-- STORY MAP 3 — Nuisances environnementales IDF -->
+      <a class="gallery-card" href="https://storymaps.arcgis.com/stories/4b651104e5514446bed7adb14b4f0c76" target="_blank" rel="noopener">
+        <img class="gallery-thumb" src="storymapairbruit.jpg" alt="Vivre avec l'air et le bruit — IDF">
+        <div class="gallery-badge">Story Map · Environnement</div>
+        <div class="gallery-overlay">
+          <div class="gallery-title">Vivre avec l'air et le bruit — Nuisances environnementales en Île-de-France</div>
+          <p class="gallery-desc">Cartographie des nuisances sonores et de la qualité de l'air en Île-de-France. ArcGIS StoryMaps.</p>
+          <span class="gallery-open"><i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir la story map</span>
+        </div>
+      </a>
+
+      
+     
+
+    </div>
+  </section>
+
+  <!-- EXPÉRIENCES -->
+  <section id="experiences">
+    <div class="section-eyebrow"><span>Expériences</span></div>
+    <div class="projects-grid">
+
+      <div class="project-card">
+        <div class="project-type">Stage de recherche</div>
+        <div class="project-title">WAREBURBIA — Sorbonne Université</div>
+        <div class="project-period">Avril – Juillet 2026 · Laboratoire Médiations</div>
+        <p class="project-desc">
+          Traitement et analyse de données censitaires américaines sous R. Construction d'une typologie socio-économique des banlieues logistiques par ACP-CAH. Cartographie multi-échelles sous QGIS. Études de cas comparatives.
+        </p>
+        <div class="project-tags">
+          <span class="tag">R / ACP-CAH</span>
+          <span class="tag">QGIS</span>
+          <span class="tag">Données Census</span>
+          <span class="tag">Recherche</span>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-type">Commande territoriale</div>
+        <div class="project-title">Mobilités piétonnes à Cergy-Pontoise</div>
+        <div class="project-period">Oct. 2025 – Mars 2026 · CACP</div>
+        <p class="project-desc">
+          Diagnostic commandé par la Communauté d'Agglomération de Cergy-Pontoise. Étude des pratiques de marche depuis la ville nouvelle. Construction d'un indicateur de marchabilité, enquête qualitative de terrain et entretiens semi-directifs auprès d'habitants et d'acteurs institutionnels.
+        </p>
+        <div class="project-tags">
+          <span class="tag">Walkability</span>
+          <span class="tag">Entretiens</span>
+          <span class="tag">QGIS</span>
+          <span class="tag">Aménagement</span>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-type">Stage SIG</div>
+        <div class="project-title">Analyse territoriale — Mairie de Cergy</div>
+        <div class="project-period">Juin – Juillet 2024 · Service Habitat & SIG</div>
+        <p class="project-desc">
+          Collecte, nettoyage et structuration de données multi-sources. Géocodage et harmonisation des données. Réalisation de cartes thématiques sur les nuisances étudiantes (2020–2023). Analyse spatiale des secteurs sensibles et restitution interservices.
+        </p>
+        <div class="project-tags">
+          <span class="tag">QGIS</span>
+          <span class="tag">Géocodage</span>
+          <span class="tag">Multi-sources</span>
+          <span class="tag">Cartographie</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PARCOURS -->
+  <section id="parcours">
+    <div class="section-eyebrow"><span>Parcours</span></div>
+    <div class="cv-grid">
+      <div>
+        <div class="cv-block-title">Formation</div>
+        <div class="cv-item">
+          <div class="cv-year">Depuis 2025</div>
+          <div class="cv-role">Master Géomatique GAEUR</div>
+          <div class="cv-place">CY Paris Université, Cergy</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">2022 – 2025</div>
+          <div class="cv-role">Licence Géographie & Aménagement</div>
+          <div class="cv-place">CY Paris Université, Cergy</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">2020 – 2022</div>
+          <div class="cv-role">Licence Biochimie & Biologie cellulaire</div>
+          <div class="cv-place">CY Paris Université, Cergy</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">2017 – 2020</div>
+          <div class="cv-role">Licence en biochimie</div>
+          <div class="cv-place">Université A. Mira, Béjaïa, Algérie</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">2017</div>
+          <div class="cv-role">Baccalauréat scientifique</div>
+          <div class="cv-place">Lycée mixte d'El Kseur, Béjaïa, Algérie</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="cv-block-title">Expériences</div>
+        <div class="cv-item">
+          <div class="cv-year">Avr. – Juil. 2026</div>
+          <div class="cv-role">Stagiaire recherche — WAREBURBIA</div>
+          <div class="cv-place">Laboratoire Médiations, Sorbonne Université</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">Oct. 2025 – Mars 2026</div>
+          <div class="cv-role">Commande territoriale — CACP</div>
+          <div class="cv-place">Communauté d'Agglomération de Cergy-Pontoise</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">Juin – Juil. 2024</div>
+          <div class="cv-role">Stagiaire analyse territoriale & SIG</div>
+          <div class="cv-place">Mairie de Cergy — Service Habitat & SIG</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">Depuis oct. 2022</div>
+          <div class="cv-role">Animateur périscolaire & centre aéré</div>
+          <div class="cv-place">École du Chemin Dupuis, Cergy</div>
+        </div>
+        <div class="cv-item">
+          <div class="cv-year">Mai – Juin 2021</div>
+          <div class="cv-role">Stage — Service de pneumologie</div>
+          <div class="cv-place">Centre hospitalier de Melun (GHSIF)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skills-section">
+      <div class="cv-block-title" style="margin-top: 2.5rem;">Outils & compétences</div>
+      <div class="skills-row">
+        <span class="skill-pill">ArcGIS Pro</span>
+        <span class="skill-pill">ArcGIS Online</span>
+        <span class="skill-pill">QGIS</span>
+        <span class="skill-pill">ENVI</span>
+        <span class="skill-pill">RStudio</span>
+        <span class="skill-pill">Python</span>
+        <span class="skill-pill">SQL</span>
+        <span class="skill-pill">Jamovi</span>
+        <span class="skill-pill">Excel avancé</span>
+        <span class="skill-pill">Illustrator</span>
+        <span class="skill-pill">Analyse spatiale</span>
+        <span class="skill-pill">ACP / CAH</span>
+        <span class="skill-pill">Cartographie thématique</span>
+        <span class="skill-pill">Enquête qualitative</span>
+        <span class="skill-pill">Aide à la décision</span>
+        <span class="skill-pill">Données multi-sources</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <div id="contact">
+    <svg class="compass-rose" width="56" height="56" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="30" cy="30" r="28" stroke="#7A5E2A" stroke-width="0.5"/>
+      <circle cx="30" cy="30" r="3" fill="#C9A84C"/>
+      <polygon points="30,4 33,30 30,28 27,30" fill="#C9A84C"/>
+      <polygon points="30,56 33,30 30,32 27,30" fill="#7A5E2A"/>
+      <polygon points="4,30 30,27 28,30 30,33" fill="#7A5E2A"/>
+      <polygon points="56,30 30,27 32,30 30,33" fill="#7A5E2A"/>
+      <text x="30" y="14" text-anchor="middle" font-size="7" fill="#C9A84C" font-family="serif" letter-spacing="1">N</text>
+    </svg>
+    <h2>Entrer en contact</h2>
+    <p>Disponible pour une alternance en géomatique, des collaborations de recherche ou des échanges académiques.</p>
+    <div class="contact-links">
+      <a href="mailto:atrounenanas@gmail.com" class="contact-link">
+        <i class="ti ti-mail" aria-hidden="true"></i> Email
+      </a>
+      <a href="tel:+33780068268" class="contact-link">
+        <i class="ti ti-phone" aria-hidden="true"></i> Téléphone
+      </a>
+      <a href="https://www.linkedin.com/in/anas-atroune-584833204" target="_blank" rel="noopener" class="contact-link">
+        <i class="ti ti-brand-linkedin" aria-hidden="true"></i> LinkedIn
+      </a>
+    </div>
+  </div>
+
+  <footer>
+    <span>© 2026 — Anas Atroune</span>
+    <span>Master GAEUR · CY Paris Université · Cergy</span>
+  </footer>
+
+</body>
+</html>
