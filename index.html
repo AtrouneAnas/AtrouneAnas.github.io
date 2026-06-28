@@ -573,6 +573,70 @@
       margin: 0 auto;
     }
 
+    /* LIGHTBOX */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(10,9,8,0.95);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .lightbox.active { display: flex; }
+
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      border: 0.5px solid var(--gold-dim);
+      box-shadow: 0 0 80px rgba(0,0,0,0.8);
+    }
+
+    .lightbox-caption {
+      margin-top: 1rem;
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: var(--gold-dim);
+      text-align: center;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: transparent;
+      border: 0.5px solid var(--gold-dim);
+      color: var(--gold);
+      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 1000;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(201,168,76,0.1);
+      border-color: var(--gold);
+    }
+
     /* RESPONSIVE */
     @media (max-width: 768px) {
       nav { padding: 1rem 1.5rem; }
@@ -975,6 +1039,57 @@
     <span>© 2026 — Anas Atroune</span>
     <span>Master GAEUR · CY Paris Université · Cergy</span>
   </footer>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Fermer">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="lightbox-inner">
+      <img class="lightbox-img" id="lightbox-img" src="" alt="">
+      <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <script>
+    // Cartes statiques : on intercepte le clic et on ouvre la lightbox
+    const staticCards = document.querySelectorAll('.gallery-card[href="#"]');
+    const lightbox    = document.getElementById('lightbox');
+    const lbImg       = document.getElementById('lightbox-img');
+    const lbCaption   = document.getElementById('lightbox-caption');
+    const lbClose     = document.getElementById('lightbox-close');
+
+    staticCards.forEach(card => {
+      card.addEventListener('click', e => {
+        e.preventDefault();
+        const img     = card.querySelector('.gallery-thumb');
+        const title   = card.querySelector('.gallery-title');
+        lbImg.src     = img ? img.src : '';
+        lbImg.alt     = img ? img.alt : '';
+        lbCaption.textContent = title ? title.textContent : '';
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+      lbImg.src = '';
+    }
+
+    lbClose.addEventListener('click', closeLightbox);
+
+    // Clic en dehors de l'image = fermeture
+    lightbox.addEventListener('click', e => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    // Touche Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
 
 </body>
 </html>
